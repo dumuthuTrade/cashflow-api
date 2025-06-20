@@ -52,10 +52,14 @@ A Node.js/Express backend for the Cashflow Management Application with MongoDB d
 
 ## API Endpoints
 
+### Admin logins
+- `POST /api/auth/admin/login` - Login admin
+  
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
+- `POST /api/auth/register` - Register new customer
+- `GET /api/auth/customers` - Get customer and customer details
+- `PUT /api/auth/customers/:id` - Update customer
+- `DELETE /api/auth/customers/:id` - Delete customer
 
 ### Cheques
 - `GET /api/cheques` - Get all cheques (with filtering)
