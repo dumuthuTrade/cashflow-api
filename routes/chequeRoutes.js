@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 const Cheque = require('../models/Cheque');
 const Supplier = require('../models/Supplier');
+const Customer = require('../models/Customer');
 
 const router = express.Router();
 
@@ -17,17 +18,17 @@ const getCheques = async (req, res, next) => {
         message: 'Validation error',
         errors: errors.array()
       });
-    }
-
-    const {
+    }    const {
       page = 1,
       limit = 10,
       status,
-      supplier,
-      dueDateFrom,
-      dueDateTo,
+      transactionType,
+      customerId,
+      supplierId,
+      chequeDateFrom,
+      chequeDateTo,
       search,
-      sortBy = 'dueDate',
+      sortBy = 'chequeDetails.chequeDate',
       sortOrder = 'asc'
     } = req.query;
 
@@ -38,31 +39,39 @@ const getCheques = async (req, res, next) => {
       query.status = status;
     }
     
-    if (supplier) {
-      query.supplier = supplier;
+    if (transactionType) {
+      query['relatedTransaction.transactionType'] = transactionType;
     }
     
-    if (dueDateFrom || dueDateTo) {
-      query.dueDate = {};
-      if (dueDateFrom) query.dueDate.$gte = new Date(dueDateFrom);
-      if (dueDateTo) query.dueDate.$lte = new Date(dueDateTo);
+    if (customerId) {
+      query['relatedTransaction.customerId'] = customerId;
+    }
+    
+    if (supplierId) {
+      query['relatedTransaction.supplierId'] = supplierId;
+    }
+    
+    if (chequeDateFrom || chequeDateTo) {
+      query['chequeDetails.chequeDate'] = {};
+      if (chequeDateFrom) query['chequeDetails.chequeDate'].$gte = new Date(chequeDateFrom);
+      if (chequeDateTo) query['chequeDetails.chequeDate'].$lte = new Date(chequeDateTo);
     }
     
     if (search) {
       query.$or = [
         { chequeNumber: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { reference: { $regex: search, $options: 'i' } }
+        { 'chequeDetails.drawerName': { $regex: search, $options: 'i' } },
+        { 'chequeDetails.payeeName': { $regex: search, $options: 'i' } },
+        { 'chequeDetails.bankName': { $regex: search, $options: 'i' } }
       ];
     }
 
     // Build sort object
     const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-    // Execute query with pagination
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;    // Execute query with pagination
     const cheques = await Cheque.find(query)
-      .populate('supplier', 'name email phone')
+      .populate('relatedTransaction.customerId', 'personalInfo.name personalInfo.email personalInfo.phone')
+      .populate('relatedTransaction.supplierId', 'name email phone')
       .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -91,11 +100,12 @@ const getCheques = async (req, res, next) => {
 // @route   GET /api/cheques/:id
 // @access  Private
 const getCheque = async (req, res, next) => {
-  try {
-    const cheque = await Cheque.findOne({
+  try {    const cheque = await Cheque.findOne({
       _id: req.params.id,
       createdBy: req.user.id
-    }).populate('supplier', 'name email phone address bankDetails');
+    })
+    .populate('relatedTransaction.customerId', 'personalInfo.name personalInfo.email personalInfo.phone personalInfo.address')
+    .populate('relatedTransaction.supplierId', 'name email phone address bankDetails');
 
     if (!cheque) {
       return res.status(404).json({
@@ -127,20 +137,33 @@ const createCheque = async (req, res, next) => {
         message: 'Validation error',
         errors: errors.array()
       });
-    }
-
-    // Verify supplier exists and belongs to user
-    const supplier = await Supplier.findOne({
-      _id: req.body.supplier,
-      createdBy: req.user.id,
-      isActive: true
-    });
-
-    if (!supplier) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid supplier or supplier not found'
+    }    // Verify related entity exists based on transaction type
+    if (req.body.relatedTransaction.transactionType === 'purchase') {
+      const supplier = await Supplier.findOne({
+        _id: req.body.relatedTransaction.supplierId,
+        createdBy: req.user.id,
+        isActive: true
       });
+
+      if (!supplier) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid supplier or supplier not found'
+        });
+      }
+    } else if (req.body.relatedTransaction.transactionType === 'sale') {
+      const customer = await Customer.findOne({
+        _id: req.body.relatedTransaction.customerId,
+        createdBy: req.user.id,
+        status: 'active'
+      });
+
+      if (!customer) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid customer or customer not found'
+        });
+      }
     }
 
     // Check if cheque number already exists for this user
@@ -159,10 +182,11 @@ const createCheque = async (req, res, next) => {
     const cheque = await Cheque.create({
       ...req.body,
       createdBy: req.user.id
-    });
-
-    // Populate supplier data before sending response
-    await cheque.populate('supplier', 'name email phone');
+    });    // Populate related entities before sending response
+    await cheque.populate([
+      { path: 'relatedTransaction.customerId', select: 'personalInfo.name personalInfo.email personalInfo.phone' },
+      { path: 'relatedTransaction.supplierId', select: 'name email phone' }
+    ]);
 
     res.status(201).json({
       status: 'success',
@@ -187,21 +211,34 @@ const updateCheque = async (req, res, next) => {
         message: 'Validation error',
         errors: errors.array()
       });
-    }
-
-    // If supplier is being updated, verify it exists and belongs to user
-    if (req.body.supplier) {
-      const supplier = await Supplier.findOne({
-        _id: req.body.supplier,
-        createdBy: req.user.id,
-        isActive: true
-      });
-
-      if (!supplier) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Invalid supplier or supplier not found'
+    }    // If related transaction is being updated, verify entities exist
+    if (req.body.relatedTransaction) {
+      if (req.body.relatedTransaction.transactionType === 'purchase' && req.body.relatedTransaction.supplierId) {
+        const supplier = await Supplier.findOne({
+          _id: req.body.relatedTransaction.supplierId,
+          createdBy: req.user.id,
+          isActive: true
         });
+
+        if (!supplier) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Invalid supplier or supplier not found'
+          });
+        }
+      } else if (req.body.relatedTransaction.transactionType === 'sale' && req.body.relatedTransaction.customerId) {
+        const customer = await Customer.findOne({
+          _id: req.body.relatedTransaction.customerId,
+          createdBy: req.user.id,
+          status: 'active'
+        });
+
+        if (!customer) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Invalid customer or customer not found'
+          });
+        }
       }
     }
 
@@ -219,18 +256,21 @@ const updateCheque = async (req, res, next) => {
           message: 'Cheque with this number already exists'
         });
       }
-    }
-
-    // Set clearance date if status is being changed to cleared
-    if (req.body.status === 'cleared' && !req.body.clearanceDate) {
-      req.body.clearanceDate = new Date();
+    }    // Set clearance date if status is being changed to cleared
+    if (req.body.status === 'cleared') {
+      if (!req.body.chequeDetails) req.body.chequeDetails = {};
+      if (!req.body.chequeDetails.clearanceDate) {
+        req.body.chequeDetails.clearanceDate = new Date();
+      }
     }
 
     const cheque = await Cheque.findOneAndUpdate(
       { _id: req.params.id, createdBy: req.user.id },
       req.body,
       { new: true, runValidators: true }
-    ).populate('supplier', 'name email phone');
+    )
+    .populate('relatedTransaction.customerId', 'personalInfo.name personalInfo.email personalInfo.phone')
+    .populate('relatedTransaction.supplierId', 'name email phone');
 
     if (!cheque) {
       return res.status(404).json({
@@ -250,7 +290,52 @@ const updateCheque = async (req, res, next) => {
   }
 };
 
-// @desc    Delete cheque
+// @desc    Update cheque status
+// @route   PATCH /api/cheques/:id/status
+// @access  Private
+const updateChequeStatus = async (req, res, next) => {
+  try {
+    const { status, notes } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Status is required'
+      });
+    }
+
+    const cheque = await Cheque.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    });
+
+    if (!cheque) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Cheque not found'
+      });
+    }
+
+    // Use the model's method to update status and add history
+    await cheque.addStatusHistory(status, notes || `Status changed to ${status}`);
+
+    // Populate related entities
+    await cheque.populate([
+      { path: 'relatedTransaction.customerId', select: 'personalInfo.name personalInfo.email personalInfo.phone' },
+      { path: 'relatedTransaction.supplierId', select: 'name email phone' }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        cheque
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @route   DELETE /api/cheques/:id
 // @access  Private
 const deleteCheque = async (req, res, next) => {
@@ -280,8 +365,7 @@ const deleteCheque = async (req, res, next) => {
 // @route   GET /api/cheques/stats
 // @access  Private
 const getDashboardStats = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
+  try {    const userId = req.user.id;
     const today = new Date();
     const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
 
@@ -301,20 +385,20 @@ const getDashboardStats = async (req, res, next) => {
       Cheque.countDocuments({ 
         createdBy: userId, 
         status: 'pending', 
-        dueDate: { $lt: today } 
+        'chequeDetails.chequeDate': { $lt: new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000)) }
       }),
       Cheque.countDocuments({ 
         createdBy: userId, 
         status: 'pending', 
-        dueDate: { $gte: today, $lte: thirtyDaysFromNow } 
+        'chequeDetails.chequeDate': { $gte: today, $lte: thirtyDaysFromNow } 
       }),
       Cheque.aggregate([
         { $match: { createdBy: userId } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+        { $group: { _id: null, total: { $sum: '$chequeDetails.amount' } } }
       ]),
       Cheque.aggregate([
         { $match: { createdBy: userId, status: 'pending' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+        { $group: { _id: null, total: { $sum: '$chequeDetails.amount' } } }
       ])
     ]);
 
@@ -341,27 +425,67 @@ const chequeValidation = [
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Cheque number must be between 1 and 50 characters'),
-  body('amount')
-    .isFloat({ min: 0.01 })
-    .withMessage('Amount must be greater than 0'),
-  body('issueDate')
-    .isISO8601()
-    .withMessage('Please provide a valid issue date'),
-  body('dueDate')
-    .isISO8601()
-    .withMessage('Please provide a valid due date'),
-  body('supplier')
+  body('type')
+    .optional()
+    .isIn(['issued', 'received'])
+    .withMessage('Type must be either issued or received'),
+  body('relatedTransaction.transactionId')
+    .isMongoId()
+    .withMessage('Please provide a valid transaction ID'),
+  body('relatedTransaction.transactionType')
+    .isIn(['sale', 'purchase'])
+    .withMessage('Transaction type must be either sale or purchase'),
+  body('relatedTransaction.customerId')
+    .optional()
+    .isMongoId()
+    .withMessage('Please provide a valid customer ID'),
+  body('relatedTransaction.supplierId')
+    .optional()
     .isMongoId()
     .withMessage('Please provide a valid supplier ID'),
+  body('chequeDetails.amount')
+    .isFloat({ min: 0.01 })
+    .withMessage('Amount must be greater than 0'),
+  body('chequeDetails.chequeDate')
+    .isISO8601()
+    .withMessage('Please provide a valid cheque date'),
+  body('chequeDetails.depositDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Please provide a valid deposit date'),
+  body('chequeDetails.bankName')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Bank name must be between 1 and 100 characters'),
+  body('chequeDetails.accountNumber')
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Account number must be between 1 and 50 characters'),
+  body('chequeDetails.drawerName')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Drawer name must be between 1 and 100 characters'),
+  body('chequeDetails.payeeName')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Payee name must be between 1 and 100 characters'),
+  body('chequeDetails.clearanceDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Please provide a valid clearance date'),
   body('status')
     .optional()
-    .isIn(['pending', 'cleared', 'bounced', 'cancelled'])
-    .withMessage('Status must be one of: pending, cleared, bounced, cancelled'),
-  body('description')
+    .isIn(['pending', 'cleared', 'bounced', 'cancelled', 'deposited'])
+    .withMessage('Status must be one of: pending, cleared, bounced, cancelled, deposited'),
+  body('bankProcessing.bounceReason')
     .optional()
     .trim()
-    .isLength({ max: 500 })
-    .withMessage('Description cannot exceed 500 characters')
+    .isLength({ max: 200 })
+    .withMessage('Bounce reason cannot exceed 200 characters'),
+  body('bankProcessing.bankCharges')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Bank charges must be a positive number')
 ];
 
 const queryValidation = [
@@ -375,24 +499,48 @@ const queryValidation = [
     .withMessage('Limit must be between 1 and 100'),
   query('status')
     .optional()
-    .isIn(['pending', 'cleared', 'bounced', 'cancelled'])
-    .withMessage('Status must be one of: pending, cleared, bounced, cancelled'),
-  query('dueDateFrom')
+    .isIn(['pending', 'cleared', 'bounced', 'cancelled', 'deposited'])
+    .withMessage('Status must be one of: pending, cleared, bounced, cancelled, deposited'),
+  query('transactionType')
+    .optional()
+    .isIn(['sale', 'purchase'])
+    .withMessage('Transaction type must be either sale or purchase'),
+  query('customerId')
+    .optional()
+    .isMongoId()
+    .withMessage('Customer ID must be a valid MongoDB ID'),
+  query('supplierId')
+    .optional()
+    .isMongoId()
+    .withMessage('Supplier ID must be a valid MongoDB ID'),
+  query('chequeDateFrom')
     .optional()
     .isISO8601()
-    .withMessage('Due date from must be a valid date'),
-  query('dueDateTo')
+    .withMessage('Cheque date from must be a valid date'),
+  query('chequeDateTo')
     .optional()
     .isISO8601()
-    .withMessage('Due date to must be a valid date'),
+    .withMessage('Cheque date to must be a valid date'),
   query('sortBy')
     .optional()
-    .isIn(['dueDate', 'amount', 'chequeNumber', 'issueDate', 'createdAt'])
-    .withMessage('Sort by must be one of: dueDate, amount, chequeNumber, issueDate, createdAt'),
+    .isIn(['chequeDetails.chequeDate', 'chequeDetails.amount', 'chequeNumber', 'createdAt', 'status'])
+    .withMessage('Sort by must be one of: chequeDetails.chequeDate, chequeDetails.amount, chequeNumber, createdAt, status'),
   query('sortOrder')
     .optional()
     .isIn(['asc', 'desc'])
     .withMessage('Sort order must be asc or desc')
+];
+
+// Status update validation
+const statusUpdateValidation = [
+  body('status')
+    .isIn(['pending', 'cleared', 'bounced', 'cancelled', 'deposited'])
+    .withMessage('Status must be one of: pending, cleared, bounced, cancelled, deposited'),
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Notes cannot exceed 500 characters')
 ];
 
 // Routes
@@ -401,6 +549,7 @@ router.get('/', queryValidation, getCheques);
 router.get('/:id', getCheque);
 router.post('/', chequeValidation, createCheque);
 router.put('/:id', chequeValidation, updateCheque);
+router.patch('/:id/status', statusUpdateValidation, updateChequeStatus);
 router.delete('/:id', deleteCheque);
 
 module.exports = router;
