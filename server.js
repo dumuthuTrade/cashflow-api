@@ -9,6 +9,7 @@ require('dotenv').config();
 const chequeRoutes = require('./routes/chequeRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const authRoutes = require('./routes/authRoutes');
+const customerRoutes = require('./routes/customerRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -39,6 +40,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cheques', protect, chequeRoutes);
 app.use('/api/suppliers', protect, supplierRoutes);
+app.use('/api/customers', protect, customerRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

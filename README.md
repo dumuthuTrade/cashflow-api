@@ -77,6 +77,54 @@ A Node.js/Express backend for the Cashflow Management Application with MongoDB d
 - `DELETE /api/suppliers/:id` - Delete supplier
 - `GET /api/suppliers/search` - Search suppliers (autocomplete)
 
+### Customers
+- `GET /api/customers` - Get all customers (with filtering, sorting, pagination)
+- `GET /api/customers/:id` - Get single customer
+- `POST /api/customers` - Create new customer
+- `PUT /api/customers/:id` - Update customer
+- `DELETE /api/customers/:id` - Delete customer
+- `PATCH /api/customers/:id/credit-rating` - Update customer credit rating
+- `GET /api/customers/stats` - Get customer statistics and analytics
+
+#### Customer Query Parameters
+- `page` - Page number for pagination (default: 1)
+- `limit` - Number of items per page (default: 10, max: 100)
+- `status` - Filter by status: `active`, `inactive`, `suspended`
+- `riskCategory` - Filter by risk category: `low`, `medium`, `high`
+- `search` - Search in customer code, name, email, phone
+- `sortBy` - Sort field: `personalInfo.name`, `customerCode`, `creditProfile.rating`, `createdAt`
+- `sortOrder` - Sort direction: `asc`, `desc` (default: asc)
+
+#### Customer Data Structure
+```json
+{
+  "customerCode": "CUST001",
+  "personalInfo": {
+    "name": "John Doe",
+    "phone": "+94112345678",
+    "email": "john@example.com",
+    "address": "123 Main Street, Colombo",
+    "identificationNumber": "123456789V"
+  },
+  "creditProfile": {
+    "rating": 7,
+    "creditLimit": 100000,
+    "availableCredit": 75000,
+    "paymentTerms": 30,
+    "riskCategory": "medium",
+    "creditHistory": [
+      {
+        "date": "2025-01-01T00:00:00.000Z",
+        "previousRating": 6,
+        "newRating": 7,
+        "reason": "Improved payment history"
+      }
+    ]
+  },
+  "status": "active"
+}
+```
+
 ## Deployment
 
 ### Free Deployment Options
@@ -125,6 +173,7 @@ railway up
 The application includes a seed script that creates:
 - Demo user: `demo@cashflow.com` / `demo123`
 - 3 sample suppliers
+- Sample customers with various credit profiles and risk categories
 - 10 sample cheques with various statuses and dates
 
 ## Security Features
