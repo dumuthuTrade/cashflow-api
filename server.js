@@ -32,7 +32,8 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Cashflow API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
 });
 
@@ -55,15 +56,22 @@ app.use('*', (req, res) => {
 
 // Database connection
 const connectDB = async () => {
-  
   try {
     const mongoURI = process.env.MONGODB_URI;
-    const res = await mongoose.connect(mongoURI);
+    
+    if (!mongoURI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    
+    const res = await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 10000, // 10 second timeout
+      socketTimeoutMS: 45000, // 45 second socket timeout
+    });
     
     console.log('MongoDB connected successfully');
   } catch (error) {
     console.error('MongoDB connection error:', error);
-    process.exit(1);
+    throw error;
   }
 };
 
@@ -71,12 +79,21 @@ const connectDB = async () => {
 const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
-  
-  await connectDB();
-  
-  app.listen(PORT, () => {
+  // Start the server first
+  const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
   });
+  
+  // Connect to database after server starts
+  try {
+    await connectDB();
+    console.log('Database connected successfully');
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    // Don't exit - let server run without DB connection for health checks
+  }
+  
+  return server;
 };
 
 startServer();
