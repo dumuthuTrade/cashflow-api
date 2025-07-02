@@ -19,8 +19,8 @@ const chequeSchema = new mongoose.Schema({
   },
   relatedTransaction: {
     transactionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: [true, 'Transaction ID is required']
+      // type: mongoose.Schema.Types.ObjectId,
+      // required: [true, 'Transaction ID is required']
     },
     transactionType: {
       type: String,

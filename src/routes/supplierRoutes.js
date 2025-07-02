@@ -10,6 +10,7 @@ const router = express.Router();
 const getSuppliers = async (req, res, next) => {
   try {
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
       return res.status(400).json({
         status: 'error',
@@ -40,9 +41,11 @@ const getSuppliers = async (req, res, next) => {
     const suppliers = await Supplier.find(query)
       .sort({ name: 1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit);   
 
     const total = await Supplier.countDocuments(query);
+
+    
 
     res.status(200).json({
       status: 'success',
@@ -193,7 +196,7 @@ const updateSupplier = async (req, res, next) => {
 const deleteSupplier = async (req, res, next) => {
   try {
     // Check if supplier has associated cheques
-    const Cheque = require('../models/Cheque');
+    const Cheque = require('./models/Cheque');
     const chequeCount = await Cheque.countDocuments({ 
       supplier: req.params.id,
       createdBy: req.user.id 

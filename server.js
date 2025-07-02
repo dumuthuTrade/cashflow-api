@@ -10,8 +10,6 @@ const chequeRoutes = require('./routes/chequeRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const authRoutes = require('./routes/authRoutes');
 const customerRoutes = require('./routes/customerRoutes');
-const salesRoutes = require('./routes/salesRoutes');
-const purchaseRoutes = require('./routes/purchaseRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -43,8 +41,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cheques', protect, chequeRoutes);
 app.use('/api/suppliers', protect, supplierRoutes);
 app.use('/api/customers', protect, customerRoutes);
-app.use('/api/sales', protect, salesRoutes);
-app.use('/api/purchases', protect, purchaseRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
