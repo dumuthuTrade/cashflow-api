@@ -139,18 +139,20 @@ const createCheque = async (req, res, next) => {
       });
     }    // Verify related entity exists based on transaction type
     if (req.body.relatedTransaction.transactionType === 'purchase') {
+      console.log(`Checking supplier with ID: ${req.body.relatedTransaction.supplierId}`);
+      
       const supplier = await Supplier.findOne({
         _id: req.body.relatedTransaction.supplierId,
         createdBy: req.user.id,
         isActive: true
       });
 
-      if (!supplier) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Invalid supplier or supplier not found'
-        });
-      }
+      // if (!supplier) {
+      //   return res.status(400).json({
+      //     status: 'error',
+      //     message: 'Invalid supplier or supplier not found'
+      //   });
+      // }
     } else if (req.body.relatedTransaction.transactionType === 'sale') {
       const customer = await Customer.findOne({
         _id: req.body.relatedTransaction.customerId,
@@ -220,12 +222,12 @@ const updateCheque = async (req, res, next) => {
           isActive: true
         });
 
-        if (!supplier) {
-          return res.status(400).json({
-            status: 'error',
-            message: 'Invalid supplier or supplier not found'
-          });
-        }
+        // if (!supplier) {
+        //   return res.status(400).json({
+        //     status: 'error',
+        //     message: 'Invalid supplier or supplier not found'
+        //   });
+        // }
       } else if (req.body.relatedTransaction.transactionType === 'sale' && req.body.relatedTransaction.customerId) {
         const customer = await Customer.findOne({
           _id: req.body.relatedTransaction.customerId,
@@ -429,9 +431,9 @@ const chequeValidation = [
     .optional()
     .isIn(['issued', 'received'])
     .withMessage('Type must be either issued or received'),
-  body('relatedTransaction.transactionId')
-    .isMongoId()
-    .withMessage('Please provide a valid transaction ID'),
+  // body('relatedTransaction.transactionId')
+  //   .isMongoId()
+  //   .withMessage('Please provide a valid transaction ID'),
   body('relatedTransaction.transactionType')
     .isIn(['sale', 'purchase'])
     .withMessage('Transaction type must be either sale or purchase'),
