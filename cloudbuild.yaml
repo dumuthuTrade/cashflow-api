@@ -14,11 +14,15 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'cashflow-backend'
+      - 'cashflow-api'
       - '--image=gcr.io/$PROJECT_ID/cashflow-backend:$COMMIT_SHA'
       - '--region=us-central1'
       - '--platform=managed'
       - '--allow-unauthenticated'
+      - '--timeout=300'
+      - '--max-instances=10'
+      - '--memory=512Mi'
+      - '--cpu=1'
       - '--set-env-vars=MONGODB_URI=${_MONGODB_URI},JWT_SECRET=${_JWT_SECRET},JWT_EXPIRE=${_JWT_EXPIRE},NODE_ENV=production'
 
 # Store images in Google Container Registry
