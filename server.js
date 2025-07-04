@@ -6,10 +6,10 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 // Import routes
-const chequeRoutes = require('./routes/chequeRoutes');
-const supplierRoutes = require('./routes/supplierRoutes');
-const authRoutes = require('./routes/authRoutes');
-const customerRoutes = require('./routes/customerRoutes');
+const chequeRoutes = require('./src/routes/chequeRoutes');
+const supplierRoutes = require('./src/routes/supplierRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const customerRoutes = require('./src/routes/customerRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
