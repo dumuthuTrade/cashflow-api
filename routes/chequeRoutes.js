@@ -153,20 +153,21 @@ const createCheque = async (req, res, next) => {
       //     message: 'Invalid supplier or supplier not found'
       //   });
       // }
-    } else if (req.body.relatedTransaction.transactionType === 'sale') {
-      const customer = await Customer.findOne({
-        _id: req.body.relatedTransaction.customerId,
-        createdBy: req.user.id,
-        status: 'active'
-      });
+    } 
+    // else if (req.body.relatedTransaction.transactionType === 'sale') {
+    //   const customer = await Customer.findOne({
+    //     _id: req.body.relatedTransaction.customerId,
+    //     createdBy: req.user.id,
+    //     status: 'active'
+    //   });
 
-      if (!customer) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Invalid customer or customer not found'
-        });
-      }
-    }
+    //   if (!customer) {
+    //     return res.status(400).json({
+    //       status: 'error',
+    //       message: 'Invalid customer or customer not found'
+    //     });
+    //   }
+    // }
 
     // Check if cheque number already exists for this user
     const existingCheque = await Cheque.findOne({
@@ -451,43 +452,43 @@ const chequeValidation = [
   body('chequeDetails.chequeDate')
     .isISO8601()
     .withMessage('Please provide a valid cheque date'),
-  body('chequeDetails.depositDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Please provide a valid deposit date'),
-  body('chequeDetails.bankName')
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Bank name must be between 1 and 100 characters'),
-  body('chequeDetails.accountNumber')
-    .trim()
-    .isLength({ min: 1, max: 50 })
-    .withMessage('Account number must be between 1 and 50 characters'),
-  body('chequeDetails.drawerName')
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Drawer name must be between 1 and 100 characters'),
-  body('chequeDetails.payeeName')
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Payee name must be between 1 and 100 characters'),
-  body('chequeDetails.clearanceDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Please provide a valid clearance date'),
+  // body('chequeDetails.depositDate')
+  //   .optional()
+  //   .isISO8601()
+  //   .withMessage('Please provide a valid deposit date'),
+  // body('chequeDetails.bankName')
+  //   .trim()
+  //   .isLength({ min: 1, max: 100 })
+  //   .withMessage('Bank name must be between 1 and 100 characters'),
+  // body('chequeDetails.accountNumber')
+  //   .trim()
+  //   .isLength({ min: 1, max: 50 })
+  //   .withMessage('Account number must be between 1 and 50 characters'),
+  // body('chequeDetails.drawerName')
+  //   .trim()
+  //   .isLength({ min: 1, max: 100 })
+  //   .withMessage('Drawer name must be between 1 and 100 characters'),
+  // body('chequeDetails.payeeName')
+  //   .trim()
+  //   .isLength({ min: 1, max: 100 })
+  //   .withMessage('Payee name must be between 1 and 100 characters'),
+  // body('chequeDetails.clearanceDate')
+  //   .optional()
+  //   .isISO8601()
+  //   .withMessage('Please provide a valid clearance date'),
   body('status')
     .optional()
     .isIn(['pending', 'cleared', 'bounced', 'cancelled', 'deposited'])
     .withMessage('Status must be one of: pending, cleared, bounced, cancelled, deposited'),
-  body('bankProcessing.bounceReason')
-    .optional()
-    .trim()
-    .isLength({ max: 200 })
-    .withMessage('Bounce reason cannot exceed 200 characters'),
-  body('bankProcessing.bankCharges')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Bank charges must be a positive number')
+  // body('bankProcessing.bounceReason')
+  //   .optional()
+  //   .trim()
+  //   .isLength({ max: 200 })
+  //   .withMessage('Bounce reason cannot exceed 200 characters'),
+  // body('bankProcessing.bankCharges')
+  //   .optional()
+  //   .isFloat({ min: 0 })
+  //   .withMessage('Bank charges must be a positive number')
 ];
 
 const queryValidation = [
