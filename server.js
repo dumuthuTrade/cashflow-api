@@ -78,22 +78,23 @@ const connectDB = async () => {
 // Start server
 const PORT = process.env.PORT || 8080;
 
+// Replace your startServer function with this:
 const startServer = async () => {
-  // Start the server first
-  const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  });
-  
-  // Connect to database after server starts
   try {
+    // Connect to database first
     await connectDB();
     console.log('Database connected successfully');
+    
+    // Start the server after database connection - IMPORTANT: bind to 0.0.0.0
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+    });
+    
+    return server;
   } catch (error) {
-    console.error('Database connection failed:', error);
-    // Don't exit - let server run without DB connection for health checks
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
-  
-  return server;
 };
 
 startServer();
