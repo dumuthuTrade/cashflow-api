@@ -259,9 +259,7 @@ const deleteCustomer = async (req, res, next) => {
   try {
     const customer = await Customer.findOneAndDelete({
       _id: req.params.id,
-      createdBy: req.user.id
     });
-
     if (!customer) {
       return res.status(404).json({
         status: 'error',

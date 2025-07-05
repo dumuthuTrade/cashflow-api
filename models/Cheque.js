@@ -18,10 +18,10 @@ const chequeSchema = new mongoose.Schema({
     lowercase: true
   },
   relatedTransaction: {
-    transactionId: {
-      // type: mongoose.Schema.Types.ObjectId,
-      // required: [true, 'Transaction ID is required']
-    },
+    // transactionId: {
+    //   // type: mongoose.Schema.Types.ObjectId,
+    //   // required: [true, 'Transaction ID is required']
+    // },
     transactionType: {
       type: String,
       required: [true, 'Transaction type is required'],
@@ -76,42 +76,43 @@ const chequeSchema = new mongoose.Schema({
       type: Date,
       required: [true, 'Cheque date is required']
     },
-    depositDate: {
-      type: Date,
-      validate: {
-        validator: function(value) {
-          // Deposit date should not be before cheque date
-          if (value && this.chequeDetails.chequeDate && value < this.chequeDetails.chequeDate) {
-            return false;
-          }
-          return true;
-        },
-        message: 'Deposit date cannot be before cheque date'
-      }
-    },
-    bankName: {
-      type: String,
-      required: [true, 'Bank name is required'],
-      trim: true,
-      maxLength: [100, 'Bank name cannot exceed 100 characters']
-    },
-    accountNumber: {
-      type: String,
-      required: [true, 'Account number is required'],
-      trim: true,
-      maxLength: [50, 'Account number cannot exceed 50 characters']
-    },
-    drawerName: {
-      type: String,
-      required: [true, 'Drawer name is required'],
-      trim: true,
-      maxLength: [100, 'Drawer name cannot exceed 100 characters']
-    },    payeeName: {
-      type: String,
-      required: [true, 'Payee name is required'],
-      trim: true,
-      maxLength: [100, 'Payee name cannot exceed 100 characters']
-    },
+    // depositDate: {
+    //   type: Date,
+    //   validate: {
+    //     validator: function(value) {
+    //       // Deposit date should not be before cheque date
+    //       if (value && this.chequeDetails.chequeDate && value < this.chequeDetails.chequeDate) {
+    //         return false;
+    //       }
+    //       return true;
+    //     },
+    //     message: 'Deposit date cannot be before cheque date'
+    //   }
+    // },
+    // bankName: {
+    //   type: String,
+    //   required: [true, 'Bank name is required'],
+    //   trim: true,
+    //   maxLength: [100, 'Bank name cannot exceed 100 characters']
+    // },
+    // accountNumber: {
+    //   type: String,
+    //   required: [true, 'Account number is required'],
+    //   trim: true,
+    //   maxLength: [50, 'Account number cannot exceed 50 characters']
+    // },
+    // drawerName: {
+    //   type: String,
+    //   required: [true, 'Drawer name is required'],
+    //   trim: true,
+    //   maxLength: [100, 'Drawer name cannot exceed 100 characters']
+    // },    
+    // payeeName: {
+    //   type: String,
+    //   required: [true, 'Payee name is required'],
+    //   trim: true,
+    //   maxLength: [100, 'Payee name cannot exceed 100 characters']
+    // },
     clearanceDate: {
       type: Date,
       validate: {
@@ -154,32 +155,32 @@ const chequeSchema = new mongoose.Schema({
     }
   }],
   bankProcessing: {
-    depositDate: {
-      type: Date,
-      validate: {
-        validator: function(value) {
-          // Deposit date should not be before cheque date
-          if (value && this.chequeDetails.chequeDate && value < this.chequeDetails.chequeDate) {
-            return false;
-          }
-          return true;
-        },
-        message: 'Bank deposit date cannot be before cheque date'
-      }
-    },
-    clearanceDate: {
-      type: Date,
-      validate: {
-        validator: function(value) {
-          // Clearance date should not be before deposit date
-          if (value && this.bankProcessing.depositDate && value < this.bankProcessing.depositDate) {
-            return false;
-          }
-          return true;
-        },
-        message: 'Clearance date cannot be before deposit date'
-      }
-    },
+    // depositDate: {
+    //   type: Date,
+    //   validate: {
+    //     validator: function(value) {
+    //       // Deposit date should not be before cheque date
+    //       if (value && this.chequeDetails.chequeDate && value < this.chequeDetails.chequeDate) {
+    //         return false;
+    //       }
+    //       return true;
+    //     },
+    //     message: 'Bank deposit date cannot be before cheque date'
+    //   }
+    // },
+    // clearanceDate: {
+    //   type: Date,
+    //   validate: {
+    //     validator: function(value) {
+    //       // Clearance date should not be before deposit date
+    //       if (value && this.bankProcessing.depositDate && value < this.bankProcessing.depositDate) {
+    //         return false;
+    //       }
+    //       return true;
+    //     },
+    //     message: 'Clearance date cannot be before deposit date'
+    //   }
+    // },
     bounceDate: {
       type: Date,
       validate: {

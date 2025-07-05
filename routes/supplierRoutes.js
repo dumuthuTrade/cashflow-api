@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 const Supplier = require('../models/Supplier');
+const Cheque = require('../models/Cheque');
 
 const router = express.Router();
 
@@ -196,7 +197,6 @@ const updateSupplier = async (req, res, next) => {
 const deleteSupplier = async (req, res, next) => {
   try {
     // Check if supplier has associated cheques
-    const Cheque = require('./models/Cheque');
     const chequeCount = await Cheque.countDocuments({ 
       supplier: req.params.id,
       createdBy: req.user.id 
