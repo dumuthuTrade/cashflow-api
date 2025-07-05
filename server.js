@@ -37,6 +37,37 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Function to connect to the database with retry logic
+const connectWithRetry = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI;
+    
+    if (!mongoURI) {
+      console.error('MONGODB_URI environment variable is not set');
+      // Optionally, you might want to exit or handle this case differently
+      return;
+    }
+
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 10000, // 10 second timeout
+      socketTimeoutMS: 45000, // 45 second socket timeout
+    });
+    
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message, '- Retrying in 5 seconds...');
+    setTimeout(connectWithRetry, 5000);
+  }
+};
+
+mongoose.connection.on('connected', () => {
+    console.log('MongoDB connected successfully');
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected. Attempting to reconnect...');
+  setTimeout(connectWithRetry, 5000);
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cheques', protect, chequeRoutes);
@@ -54,48 +85,12 @@ app.use('*', (req, res) => {
   });
 });
 
-// Database connection
-const connectDB = async () => {
-  try {
-    const mongoURI = process.env.MONGODB_URI;
-    
-    if (!mongoURI) {
-      throw new Error('MONGODB_URI environment variable is not set');
-    }
-    
-    const res = await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 10000, // 10 second timeout
-      socketTimeoutMS: 45000, // 45 second socket timeout
-    });
-    
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
-
 // Start server
 const PORT = process.env.PORT || 8080;
 
-const startServer = async () => {
-  // Start the server first
-  const server = app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  });
-  
-  // Connect to database after server starts
-  try {
-    await connectDB();
-    console.log('Database connected successfully');
-  } catch (error) {
-    console.error('Database connection failed:', error);
-    // Don't exit - let server run without DB connection for health checks
-  }
-  
-  return server;
-};
+});
 
-startServer();
 
 module.exports = app;

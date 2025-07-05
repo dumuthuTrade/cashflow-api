@@ -4,13 +4,11 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci 
 
 # Copy app source
 COPY . .
 
-# Set environment variables
-ENV NODE_ENV=production
 ENV PORT=8080
 
 # Expose the port the app will run on
