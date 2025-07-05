@@ -68,6 +68,9 @@ mongoose.connection.on('disconnected', () => {
   setTimeout(connectWithRetry, 5000);
 });
 
+// Connect to the database
+connectWithRetry();
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cheques', protect, chequeRoutes);
